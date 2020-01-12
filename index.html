@@ -3,7 +3,7 @@
 <head>
   <title>Ghost of Living Calculator</title>
   <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
-  
+
 </head>
 <body>
   <h1>Ghost of Living Calculator</h1>
@@ -12,7 +12,7 @@
     <button type="button" class="btn btn-primary">Seattle</button>
     <button type="button" class="btn btn-primary">Vancouver</button>
   </div>
-  
+
   <div class="d-flex bd-highlight">
   <div class="p-2 flex-fill bd-highlight" id="san-francisco">
     <h3>San Francisco</h3>
@@ -110,24 +110,145 @@
     </ul>
    </div>
 </div>
-  
-  
+
+
   <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
-  
+
   <script type="text/javascript">
+    let taxRates = {
+      "San Francisco": {
+        "currency": "USD",
+        "year": 2019,
+        "jurisdictions": [
+          {
+            "jurisdiction": "Federal",
+            "exemption": 12200,
+            "brackets": [
+              [0.10, 0],
+              [0.12, 9700],
+              [0.22, 39475],
+              [0.24, 84200],
+              [0.32, 160725],
+              [0.35, 204100],
+              [0.37, 510300]
+            ]
+          },
+          {
+            "jurisdiction": "State",
+            "exemption": 0,
+            "brackets": [
+              [0.01, 0],
+              [0.020, 8544],
+              [0.040, 20255],
+              [0.060, 31969],
+              [0.080, 44377],
+              [0.093, 56085],
+              [0.103, 286492],
+              [0.113, 343788],
+              [0.123, 572980]
+            ]
+          }
+        ]
+      },
+      "Seattle": {
+        "currency": "USD",
+        "year": 2019,
+        "jurisdictions": [
+          {
+            "jurisdiction": "Federal",
+            "exemption": 12200,
+            "brackets": [
+              [0.10, 0],
+              [0.12, 9700],
+              [0.22, 39475],
+              [0.24, 84200],
+              [0.32, 160725],
+              [0.35, 204100],
+              [0.37, 510300]
+            ]
+          },
+          {
+            "jurisdiction": "State",
+            "brackets": []
+          }
+        ]
+      },
+      "Vancouver": {
+        "currency": "CAD",
+        "year": 2019,
+        "jurisdictions": [
+          {
+            "jurisdiction": "Federal",
+            "exemption": 0,
+            "brackets": [
+              [0.150, 0],
+              [0.205, 45282],
+              [0.260, 90563],
+              [0.290, 140388],
+              [0.330, 200000]
+            ]
+          },
+          {
+            "jurisdiction": "Provincial",
+            "exemption": 0,
+            "brackets": [
+              [0.0506, 0],
+              [0.0770, 40707],
+              [0.1050, 81416],
+              [0.1229, 93476],
+              [0.1470, 113506],
+              [0.1680, 153900]
+            ]
+          }
+        ]
+      }
+    };
     function yichen(cityName, currency, totalTotal) {
-    	console.log('yichen called')
-      console.log([cityName, currency, totalTotal])
-      return [10, 10, 10, 10]
+    	let exchangeRates = {"USD": 1, "CAD": 1.3056}
+      let salary = totalTotal
+      let city = cityName
+      let targetCurrency = taxRates[city].currency
+      let exchangeRate = exchangeRates[targetCurrency] / exchangeRates[currency]
+      let convertedSalary = salary * exchangeRate
+      let totalTax = taxRates[city].jurisdictions.map(jurisdiction => {
+        console.log(jurisdiction.jurisdiction)
+        var salaryTemp = convertedSalary - jurisdiction.exemption
+        var index = 0
+        var taxAmount = 0
+        while (salaryTemp > 0) {
+          var rate = jurisdiction.brackets[index][0]
+          console.log(rate)
+          if (index + 1 >= jurisdiction.brackets.length) {
+            taxAmount += salaryTemp * rate
+            break
+          }
+          var maxAmount = jurisdiction.brackets[index + 1][1] - jurisdiction.brackets[index][1]
+          if (maxAmount >= salaryTemp) {
+            taxAmount += salaryTemp * rate
+            console.log(salaryTemp)
+            salaryTemp -= salaryTemp
+            break
+          }
+          taxAmount += maxAmount * rate
+          console.log(maxAmount)
+          salaryTemp -= maxAmount
+          index++
+        }
+        console.log(taxAmount)
+        return taxAmount
+      }).reduce((accumulator, currentValue) => accumulator + currentValue)
+      console.log(totalTax)
+      totalTax = totalTax / exchangeRate
+      return [totalTotal, totalTotal - totalTax, (totalTotal - totalTax) / 24, totalTax / totalTotal]
     }
     function getValues(cityName) {
       var cityId = cityName.toLowerCase().replace(/\s/, '-');
       var currency = $('#' + cityId + ' .currency-select option:selected').text();
       var base = Number.parseFloat($('#' + cityId + ' .salary-input').val()) || 0;
       var bonus = Number.parseFloat($('#' + cityId + ' .bonus-input').val()) || 0;
-      
+
       var fourNumbers = yichen(cityName, currency, base + bonus);
       updateUI(cityId, fourNumbers);
     }
